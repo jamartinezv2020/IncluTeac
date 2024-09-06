@@ -1,52 +1,36 @@
-// src/config/passport.ts
+// backend/src/config/passport.ts
 
 import passport from 'passport';
-import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
-import User, { IUser } from '../entities/User';
-import dotenv from 'dotenv';
+import { Strategy as LocalStrategy } from 'passport-local';
+import User from '../models/User'; // Ajusta la ruta correctamente
 
-dotenv.config();
 
-passport.serializeUser((user: any, done) => {
+passport.use(new LocalStrategy(
+  async (username: string, password: string, done: (error: any, user?: any, options?: any) => void) => {
+    try {
+      const user = await User.findOne({ email: username }); // Usa `email` si estás buscando por correo
+      if (!user) {
+        return done(null, false, { message: 'Usuario no encontrado' });
+      }
+      // Lógica de validación de contraseña
+      done(null, user);
+    } catch (err) {
+      done(err);
+    }
+  }
+));
+
+passport.serializeUser((user: any, done: (err: any, id?: any) => void) => {
   done(null, user.id);
 });
 
-passport.deserializeUser(async (id, done) => {
+passport.deserializeUser(async (id: string, done: (err: any, user?: any) => void) => {
   try {
     const user = await User.findById(id);
     done(null, user);
   } catch (err) {
-    done(err, null);
+    done(err);
   }
 });
 
-passport.use(
-  new GoogleStrategy(
-    {
-      clientID: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      callbackURL: '/auth/google/callback',
-    },
-    async (accessToken, refreshToken, profile, done) => {
-      try {
-        const existingUser = await User.findOne({ googleId: profile.id });
-
-        if (existingUser) {
-          return done(null, existingUser);
-        }
-
-        const newUser = new User({
-          googleId: profile.id,
-          email: profile.emails![0].value,
-          name: profile.displayName,
-          avatar: profile.photos![0].value,
-        });
-
-        await newUser.save();
-        done(null, newUser);
-      } catch (err) {
-        done(err, null);
-      }
-    }
-  )
-);
+export default passport;

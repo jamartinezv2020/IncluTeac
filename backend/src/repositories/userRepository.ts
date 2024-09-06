@@ -1,8 +1,8 @@
 // src/repositories/userRepository.ts
 
-import { IUser } from '../entities/User';
+import { IUser } from '../models/User';
 import * as userDao from '../daos/userDao';
-import crypto from 'crypto';
+import * as crypto from 'crypto';
 import { sendVerificationEmail } from '../utils/mailer';
 
 /**

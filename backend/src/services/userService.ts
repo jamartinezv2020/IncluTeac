@@ -3,8 +3,9 @@
 import bcrypt from 'bcryptjs'; // Cambié de 'bcrypt' a 'bcryptjs' para compatibilidad.
 import jwt from 'jsonwebtoken';
 import speakeasy from 'speakeasy';
+import { v4 as uuidv4 } from 'uuid'; // Importa la función para generar UUIDs
 import qrcode from 'qrcode';
-import { IUser, User } from '../entities/User'; // Asegúrate de que la importación de User sea correcta y exista el archivo correspondiente.
+import User, { IUser } from '../models/User'; // Asegúrate de que la importación es correcta
 
 /**
  * Servicio para crear un usuario con encriptación de contraseña.
@@ -44,8 +45,9 @@ export const authenticateUser = async (credentials: { email: string; password: s
 export const generate2FASecret = async (user: IUser): Promise<string> => {
   const secret = speakeasy.generateSecret({ name: 'IncluTeac' });
 
-  // Convierte la URL OTP a un código QR
-  const data_url = await qrcode.toDataURL(secret.otpauth_url);
+  // Verifica que otpauth_url no sea undefined antes de convertirlo a un código QR
+  const otpauthUrl = secret.otpauth_url ?? ''; // Asegura que otpauthUrl no sea undefined
+  const data_url = await qrcode.toDataURL(otpauthUrl);
 
   // Asigna el secreto al usuario y guarda los cambios
   user.twoFactorSecret = secret.base32;
@@ -61,9 +63,15 @@ export const generate2FASecret = async (user: IUser): Promise<string> => {
  * @returns Verdadero si el token es válido, falso en caso contrario.
  */
 export const verify2FAToken = (user: IUser, token: string): boolean => {
+  // Verifica que el secreto 2FA no sea undefined
+  if (!user.twoFactorSecret) {
+    throw new Error('2FA secret is not set for this user.');
+  }
+
   return speakeasy.totp.verify({
     secret: user.twoFactorSecret,
     encoding: 'base32',
     token,
   });
 };
+

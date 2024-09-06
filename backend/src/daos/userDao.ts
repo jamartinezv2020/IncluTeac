@@ -1,6 +1,6 @@
 // src/daos/userDao.ts
 
-import User, { IUser } from '../entities/User';
+import User, { IUser } from '../models/User';
 
 /**
  * Crea un nuevo usuario en la base de datos.
